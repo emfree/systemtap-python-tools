@@ -1,0 +1,46 @@
+
+
+@define PYTHON2_LIBRARY %( "/usr/bin/python-dbg" %)
+
+function extract_string(py_string) {
+    return user_string(@cast(py_string, "PyStringObject", @PYTHON2_LIBRARY)->ob_sval);
+}
+
+
+function func_name (frame) {
+    return extract_string(@cast(frame, "PyFrameObject", @PYTHON2_LIBRARY)->f_code->co_name);
+}
+
+function filename (frame) {
+    return extract_string(@cast(frame, "PyFrameObject", @PYTHON2_LIBRARY)->f_code->co_filename);
+}
+
+
+function walk_python_stack(frame) {
+    stack = ""
+    while (frame != 0) {
+        stack = " ".func_name(frame)."(".filename(frame).")".stack;
+        frame = @cast(frame, "PyFrameObject", @PYTHON2_LIBRARY)->f_back; }
+    return stack;
+}
+
+function get_current_python_frame() {
+    pythreadstate = @var("_PyThreadState_Current@Python/pystate.c", "/usr/bin/python-dbg");
+    return @cast(pythreadstate, "PyThreadState", "/usr/bin/python-dbg")->frame;
+}
+
+probe timer.profile {
+    if (pid() == target()) {
+        fr = get_current_python_frame();
+        printf("%s\n%s\n", sprint_ubacktrace(), walk_python_stack(fr));
+    }
+}
+
+
+
+//probe process("/usr/bin/python-dbg").function("PyEval_EvalFrameEx") {
+//    code = @cast($f, "PyFrameObject", @PYTHON2_LIBRARY)->f_code
+//    printf("PyEval_EvalFrameEx real arg: %s\n", extract_string(code->co_name));
+//}
+
+probe timer.s(3) { exit(); }

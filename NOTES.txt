@@ -1,0 +1,14 @@
+Prereqs
+---
+apt-get install gcc g++ textinfo libdw-dev
+install kernel debug symbols (stap-prep for details)
+
+need coreutils debuginfo too?
+
+
+getting Python function name:
+sudo stap -I /home/ubuntu/systemtap/testsuite/systemtap.examples/general/tapset -c '/usr/bin/python-dbg pyexample.py 35'  -e 'probe process("/usr/bin/python-dbg").function("PyEval_EvalFrameEx") { f_name=user_string(@cast($f->f_code->co_name, "PyStringObject")->ob_sval); printf("%s\n", f_name); }'
+
+
+getting traces:
+sudo stap -d /usr/bin/python-dbg -d /lib/x86_64-linux-gnu/libc-2.23.so /vagrant_data/pysample.stp -D MAXSTRINGLEN=4096 -D MAXBACKTRACE=100 -x $PID
