@@ -1,6 +1,8 @@
-
-
 @define PYTHON2_LIBRARY %( "/usr/bin/python-dbg" %)
+
+global pystack;
+global ustack;
+global stack_agg;
 
 function extract_string(py_string) {
     return user_string(@cast(py_string, "PyStringObject", @PYTHON2_LIBRARY)->ob_sval);
@@ -16,31 +18,58 @@ function filename (frame) {
 }
 
 
-function walk_python_stack(frame) {
-    stack = ""
+function unpack_pystack () {
+    delete pystack
+    i = 0;
+    frame = get_current_python_frame()
     while (frame != 0) {
-        stack = " ".func_name(frame)."(".filename(frame).")".stack;
-        frame = @cast(frame, "PyFrameObject", @PYTHON2_LIBRARY)->f_back; }
-    return stack;
+        pystack[i] = sprintf("%s(%s)", func_name(frame), filename(frame));
+        frame = @cast(frame, "PyFrameObject", @PYTHON2_LIBRARY)->f_back;
+        i++;
+    }
+}
+
+function unpack_ustack () {
+    delete ustack;
+    i = 0;
+    bt = ubacktrace();
+    addr = tokenize(bt, " ");
+    while (addr != "") {
+        ustack[i] = usymname(strtol(addr, 16));
+        i++;
+        addr = tokenize("", " ");
+    }
 }
 
 function get_current_python_frame() {
-    pythreadstate = @var("_PyThreadState_Current@Python/pystate.c", "/usr/bin/python-dbg");
-    return @cast(pythreadstate, "PyThreadState", "/usr/bin/python-dbg")->frame;
+    pythreadstate = @var("_PyThreadState_Current@Python/pystate.c", @PYTHON2_LIBRARY);
+    return @cast(pythreadstate, "PyThreadState", @PYTHON2_LIBRARY)->frame;
 }
 
 probe timer.profile {
     if (pid() == target()) {
-        fr = get_current_python_frame();
-        printf("%s\n%s\n", sprint_ubacktrace(), walk_python_stack(fr));
+        unpack_pystack();
+        unpack_ustack();
+        merged_stack = "";
+        pystack_idx = 0;
+        foreach(idx in ustack) {
+            if (ustack[idx] == "PyEval_EvalFrameEx") {
+                merged_stack = ";" . pystack[pystack_idx] . merged_stack;
+                pystack_idx++;
+            } else {
+                merged_stack = ";" . ustack[idx] . merged_stack;
+            }
+        }
+        stack_agg[merged_stack] <<< 1;
     }
 }
 
 
+probe end {
+    foreach (st in stack_agg) {
+        printf("%s %d\n", st, @count(stack_agg[st]));
+    }
+}
 
-//probe process("/usr/bin/python-dbg").function("PyEval_EvalFrameEx") {
-//    code = @cast($f, "PyFrameObject", @PYTHON2_LIBRARY)->f_code
-//    printf("PyEval_EvalFrameEx real arg: %s\n", extract_string(code->co_name));
-//}
 
-probe timer.s(3) { exit(); }
+probe timer.s(10) { exit(); }
