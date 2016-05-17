@@ -21,7 +21,7 @@ function filename (frame) {
 function unpack_pystack () {
     delete pystack
     i = 0;
-    frame = get_current_python_frame()
+    frame = current_python_frame()
     while (frame != 0) {
         pystack[i] = sprintf("%s(%s)", func_name(frame), filename(frame));
         frame = @cast(frame, "PyFrameObject", @PYTHON2_LIBRARY)->f_back;
@@ -41,26 +41,40 @@ function unpack_ustack () {
     }
 }
 
-function get_current_python_frame() {
+function current_python_frame() {
     pythreadstate = @var("_PyThreadState_Current@Python/pystate.c", @PYTHON2_LIBRARY);
     return @cast(pythreadstate, "PyThreadState", @PYTHON2_LIBRARY)->frame;
 }
 
+
+function sprint_merged_stack () {
+    unpack_pystack();
+    unpack_ustack();
+    merged_stack = "";
+    pystack_idx = 0;
+    foreach(idx+ in ustack) {
+        if (ustack[idx] == "PyEval_EvalFrameEx") {
+            merged_stack = ";" . pystack[pystack_idx] . merged_stack;
+            pystack_idx++;
+        } else {
+            merged_stack = ";" . ustack[idx] . merged_stack;
+        }
+    }
+    return merged_stack;
+}
+
+function sprint_pystack () {
+    unpack_pystack();
+    stack = "";
+    foreach (idx+ in pystack) {
+        stack = ";" . pystack[idx] . stack;
+    }
+    return stack;
+}
+
 probe timer.profile {
     if (pid() == target()) {
-        unpack_pystack();
-        unpack_ustack();
-        merged_stack = "";
-        pystack_idx = 0;
-        foreach(idx in ustack) {
-            if (ustack[idx] == "PyEval_EvalFrameEx") {
-                merged_stack = ";" . pystack[pystack_idx] . merged_stack;
-                pystack_idx++;
-            } else {
-                merged_stack = ";" . ustack[idx] . merged_stack;
-            }
-        }
-        stack_agg[merged_stack] <<< 1;
+        stack_agg[sprint_merged_stack()] <<< 1;
     }
 }
 
@@ -72,4 +86,4 @@ probe end {
 }
 
 
-probe timer.s(10) { exit(); }
+probe timer.s(15) { exit(); }
