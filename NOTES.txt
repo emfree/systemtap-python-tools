@@ -13,4 +13,10 @@ sudo stap -I /home/ubuntu/systemtap/testsuite/systemtap.examples/general/tapset 
 getting traces:
 sudo stap -d /usr/bin/python-dbg -d /lib/x86_64-linux-gnu/libc-2.23.so /vagrant_data/pysample.stp -D MAXSTRINGLEN=4096 -D MAXBACKTRACE=100 D MAXMAPENTRIES=10240 -x $PID
 
-still need to handle read faults in python stack unwinding.
+can also pass --all-modules instead of -d ... ?
+
+----
+Building python with --with-pydebug turns on the debug memory allocator. To
+just get DWARF debugging symbols, do
+$ sudo apt-get install -y zlib1g-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libreadline-dev
+$ ./configure --prefix=/opt/python-dbg; CFLAGS='-g -fno-omit-frame-pointer' make -j2; sudo make install

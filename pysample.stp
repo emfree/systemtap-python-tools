@@ -1,20 +1,21 @@
-@define PYTHON2_LIBRARY %( "/usr/bin/python-dbg" %)
+@define PYTHON_LIBRARY %( "/usr/bin/python-dbg" %)
+@define PYTHON_STRINGTYPE %( "PyStringObject" %)  // Change this to PyBytesObject for Python 3
 
 global pystack;
 global ustack;
 global stack_agg;
 
 function extract_string(py_string) {
-    return user_string(@cast(py_string, "PyStringObject", @PYTHON2_LIBRARY)->ob_sval);
+    return user_string(@cast(py_string, @PYTHON_STRINGTYPE, @PYTHON_LIBRARY)->ob_sval);
 }
 
 
 function func_name (frame) {
-    return extract_string(@cast(frame, "PyFrameObject", @PYTHON2_LIBRARY)->f_code->co_name);
+    return extract_string(@cast(frame, "PyFrameObject", @PYTHON_LIBRARY)->f_code->co_name);
 }
 
 function filename (frame) {
-    return extract_string(@cast(frame, "PyFrameObject", @PYTHON2_LIBRARY)->f_code->co_filename);
+    return extract_string(@cast(frame, "PyFrameObject", @PYTHON_LIBRARY)->f_code->co_filename);
 }
 
 
@@ -24,7 +25,7 @@ function unpack_pystack () {
     frame = current_python_frame()
     while (frame != 0) {
         pystack[i] = sprintf("%s(%s)", func_name(frame), filename(frame));
-        frame = @cast(frame, "PyFrameObject", @PYTHON2_LIBRARY)->f_back;
+        frame = @cast(frame, "PyFrameObject", @PYTHON_LIBRARY)->f_back;
         i++;
     }
 }
@@ -42,8 +43,8 @@ function unpack_ustack () {
 }
 
 function current_python_frame() {
-    pythreadstate = @var("_PyThreadState_Current@Python/pystate.c", @PYTHON2_LIBRARY);
-    return @cast(pythreadstate, "PyThreadState", @PYTHON2_LIBRARY)->frame;
+    pythreadstate = @var("_PyThreadState_Current@Python/pystate.c", @PYTHON_LIBRARY);
+    return @cast(pythreadstate, "PyThreadState", @PYTHON_LIBRARY)->frame;
 }
 
 
@@ -74,7 +75,10 @@ function sprint_pystack () {
 
 probe timer.profile {
     if (pid() == target()) {
-        stack_agg[sprint_merged_stack()] <<< 1;
+        try {
+            stack_agg[sprint_merged_stack()] <<< 1;
+        }
+        catch {}
     }
 }
 
@@ -86,4 +90,4 @@ probe end {
 }
 
 
-probe timer.s(15) { exit(); }
+probe timer.s(10) { exit(); }
