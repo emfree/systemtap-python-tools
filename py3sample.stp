@@ -1,20 +1,25 @@
-@define PYTHON_LIBRARY %( "/usr/bin/python-dbg" %)
+@define PYTHON_LIBRARY %( "/opt/python3-dbg/bin/python3" %)
 
 global pystack;
 global ustack;
 global stack_agg;
 
-function extract_string(py_string) {
-    return user_string(@cast(py_string, PyStringObject, @PYTHON_LIBRARY)->ob_sval);
+
+function py3_extract_string(py_unicodeobject) {
+    // The actual character buffer is stored right after the PyASCIIObject
+    // struct. See Include/unicodeobject.h in the Python source for details.
+    // TODO: assuming ASCII here
+    data = &@cast(py_unicodeobject, "PyASCIIObject", @PYTHON_LIBRARY)[1];
+    return user_string(data);
 }
 
 
 function func_name (frame) {
-    return extract_string(@cast(frame, "PyFrameObject", @PYTHON_LIBRARY)->f_code->co_name);
+    return py3_extract_string(@cast(frame, "PyFrameObject", @PYTHON_LIBRARY)->f_code->co_name);
 }
 
 function filename (frame) {
-    return extract_string(@cast(frame, "PyFrameObject", @PYTHON_LIBRARY)->f_code->co_filename);
+    return py3_extract_string(@cast(frame, "PyFrameObject", @PYTHON_LIBRARY)->f_code->co_filename);
 }
 
 
@@ -41,19 +46,27 @@ function unpack_ustack () {
     }
 }
 
+
 function current_python_frame() {
-    pythreadstate = @var("_PyThreadState_Current@Python/pystate.c", @PYTHON_LIBRARY);
-    return @cast(pythreadstate, "PyThreadState", @PYTHON_LIBRARY)->frame;
+    addr = &@var("_PyThreadState_Current@Python/pystate.c", @PYTHON_LIBRARY);
+    v = @cast(addr, "_Py_atomic_address", @PYTHON_LIBRARY)->_value;
+    pythreadstate = @cast(v, "PyThreadState", @PYTHON_LIBRARY)->frame;
+    return pythreadstate;
 }
 
 
 function sprint_merged_stack () {
-    unpack_pystack();
     unpack_ustack();
+    try {
+        unpack_pystack();
+        have_pystack = 1;
+    } catch {
+        have_pystack = 0;
+    }
     merged_stack = "";
     pystack_idx = 0;
     foreach(idx+ in ustack) {
-        if (ustack[idx] == "PyEval_EvalFrameEx") {
+        if ((ustack[idx] == "PyEval_EvalFrameEx") && have_pystack) {
             merged_stack = ";" . pystack[pystack_idx] . merged_stack;
             pystack_idx++;
         } else {
@@ -74,10 +87,7 @@ function sprint_pystack () {
 
 probe timer.profile {
     if (pid() == target()) {
-        try {
             stack_agg[sprint_merged_stack()] <<< 1;
-        }
-        catch {}
     }
 }
 
