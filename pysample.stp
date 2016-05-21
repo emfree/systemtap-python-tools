@@ -1,11 +1,11 @@
-@define PYTHON_LIBRARY %( "/usr/bin/python-dbg" %)
+@define PYTHON_LIBRARY %( @1  %)
 
 global pystack;
 global ustack;
 global stack_agg;
 
 function extract_string(py_string) {
-    return user_string(@cast(py_string, PyStringObject, @PYTHON_LIBRARY)->ob_sval);
+    return user_string(@cast(py_string, "PyStringObject", @PYTHON_LIBRARY)->ob_sval);
 }
 
 
@@ -89,4 +89,4 @@ probe end {
 }
 
 
-probe timer.s(10) { exit(); }
+probe timer.s($2) { exit(); }

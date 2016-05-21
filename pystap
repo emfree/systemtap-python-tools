@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+import argparse
+import os
+import subprocess
+
+
+def main():
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('-x', '--pid', help='PID to profile')
+    argparser.add_argument('-t', '--time', default='30',
+                           help='Time to run profiler, in seconds')
+    argparser.add_argument('-d', action='append', dest='extra_loads',
+                           help='Load symbols from these additional modules')
+    argparser.add_argument('--py3', action='store_true',
+                           help='Pass when profiling Python 3 programs')
+    args = argparser.parse_args()
+    assert args.pid > 1
+
+    binary_path = os.path.realpath('/proc/{}/exe'.format(args.pid))
+
+    # TODO: get absolute path
+    stapscript = './py3sample.stp' if args.py3 else './pysample.stp'
+
+    stap_cmd = ['stap', stapscript, binary_path, args.time, '-d', binary_path,
+                '-x', args.pid]
+
+    if args.extra_loads is not None:
+        for l in args.extra_loads:
+            stap_cmd.extend(('-d', l))
+
+    limits=['-D', 'MAXSTRINGLEN=16384', '-D', 'MAXBACKTRACE=200',
+            '-D', 'MAXMAPENTRIES=10240']
+
+    stap_cmd.extend(limits)
+
+    print stap_cmd
+
+    p = subprocess.Popen(stap_cmd)
+    p.wait()
+
+
+if __name__ == '__main__':
+    main()
