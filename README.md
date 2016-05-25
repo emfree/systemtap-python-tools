@@ -71,7 +71,7 @@ export $VER=2.7.11
 wget https://www.python.org/ftp/python/$RELEASE/Python-$VER.tar.xz
 tar -xzvf Python-$VER.tar.xz
 cd Python-$VER.tar.xz
-./configure CFLAGS='-g -fno-omit-frame-pointer' --prefix=/opt/python-$VER/dbg
+./configure CFLAGS='-g -fno-omit-frame-pointer' --prefix=/opt/python-$VER-dbg
 make
 sudo make install
 ```
