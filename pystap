@@ -21,8 +21,8 @@ def main():
     # TODO: get absolute path
     stapscript = './py3sample.stp' if args.py3 else './pysample.stp'
 
-    stap_cmd = ['stap', stapscript, binary_path, args.time, '-d', binary_path,
-                '-x', args.pid]
+    stap_cmd = ['stap', stapscript, binary_path, args.time, '-d',
+                binary_path, '-x', args.pid]
 
     if args.extra_loads is not None:
         for l in args.extra_loads:

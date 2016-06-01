@@ -85,10 +85,8 @@ function sprint_pystack () {
     return stack;
 }
 
-probe timer.profile {
-    if (pid() == target()) {
-            stack_agg[sprint_merged_stack()] <<< 1;
-    }
+probe perf.sw.task_clock.process {
+    stack_agg[sprint_merged_stack()] <<< 1;
 }
 
 
