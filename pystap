@@ -28,7 +28,7 @@ def main():
         for l in args.extra_loads:
             stap_cmd.extend(('-d', l))
 
-    limits=['-D', 'MAXSTRINGLEN=16384', '-D', 'MAXBACKTRACE=200',
+    limits=['-D', 'MAXSTRINGLEN=4096', '-D', 'MAXBACKTRACE=200',
             '-D', 'MAXMAPENTRIES=10240']
 
     stap_cmd.extend(limits)
