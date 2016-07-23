@@ -43,6 +43,9 @@ function unpack_ustack () {
 
 function current_python_frame() {
     pythreadstate = @var("_PyThreadState_Current@Python/pystate.c", @PYTHON_LIBRARY);
+    if (pythreadstate == 0) {
+        return 0
+    }
     return @cast(pythreadstate, "PyThreadState", @PYTHON_LIBRARY)->frame;
 }
 
