@@ -74,6 +74,7 @@ function sprint_pystack () {
 
 probe perf.sw.task_clock.process {
     stack_agg[sprint_merged_stack()] <<< 1;
+}
 
 
 probe end {
