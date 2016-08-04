@@ -69,9 +69,9 @@ flamegraph.pl prof-$PID.txt > prof-$PID.svg
 [2] The "debug" Python binary is built with `--with-pydebug`, which also builds the interpreter with `-O0`, and enables the debug memory allocator. Those changes can negatively affect application performance, when all we really need here is a binary with DWARF debugging symbols in it. If this is a factor, consider building your own Python binary instead. E.g. (untested)
 ```
 export $VER=2.7.11
-wget https://www.python.org/ftp/python/$RELEASE/Python-$VER.tar.xz
-tar -xzvf Python-$VER.tar.xz
-cd Python-$VER.tar.xz
+wget https://www.python.org/ftp/python/$VER/Python-$VER.tar.xz
+tar -xvJf Python-$VER.tar.xz
+cd Python-$VER
 ./configure CFLAGS='-g -fno-omit-frame-pointer' --prefix=/opt/python-$VER-dbg
 make
 sudo make install
