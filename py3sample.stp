@@ -50,6 +50,11 @@ function unpack_ustack () {
 function current_python_frame() {
     addr = &@var("_PyThreadState_Current@Python/pystate.c", @PYTHON_LIBRARY);
     v = @cast(addr, "_Py_atomic_address", @PYTHON_LIBRARY)->_value;
+    if (v == 0) {
+        // This only works if the GIL has been initialized :(
+        addr = &@var("gil_last_holder@Python/ceval.c", @PYTHON_LIBRARY);
+        v = @cast(addr, "_Py_atomic_address", @PYTHON_LIBRARY)->_value;
+    }
     frame = @cast(v, "PyThreadState", @PYTHON_LIBRARY)->frame;
     return frame;
 }
