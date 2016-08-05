@@ -24,9 +24,9 @@ function filename (frame) {
 
 
 function unpack_pystack () {
-    delete pystack
+    delete pystack;
     i = 0;
-    frame = current_python_frame()
+    frame = current_python_frame();
     while (frame != 0) {
         pystack[i] = sprintf("%s(%s)", func_name(frame), filename(frame));
         frame = @cast(frame, "PyFrameObject", @PYTHON_LIBRARY)->f_back;
@@ -50,8 +50,8 @@ function unpack_ustack () {
 function current_python_frame() {
     addr = &@var("_PyThreadState_Current@Python/pystate.c", @PYTHON_LIBRARY);
     v = @cast(addr, "_Py_atomic_address", @PYTHON_LIBRARY)->_value;
-    pythreadstate = @cast(v, "PyThreadState", @PYTHON_LIBRARY)->frame;
-    return pythreadstate;
+    frame = @cast(v, "PyThreadState", @PYTHON_LIBRARY)->frame;
+    return frame;
 }
 
 

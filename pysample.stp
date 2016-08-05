@@ -1,4 +1,4 @@
-@define PYTHON_LIBRARY %( @1  %)
+@define PYTHON_LIBRARY %( @1 %)
 
 global pystack;
 global ustack;
