@@ -32,6 +32,18 @@ function unpack_pystack () {
 function unpack_ustack () {
     delete ustack;
     i = 0;
+
+    // try throwing the kernel stack in there too
+    if (!user_mode()) {
+        kbt = backtrace();
+        addr = tokenize(kbt, " ");
+        while (addr != "") {
+            ustack[i] = "[k] " . symname(strtol(addr, 16));
+            i++;
+            addr = tokenize("", " ");
+        }
+    }
+
     bt = ubacktrace();
     addr = tokenize(bt, " ");
     while (addr != "") {
