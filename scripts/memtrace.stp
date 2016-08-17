@@ -1,12 +1,12 @@
 global allocs
 
 
-probe process("/lib/x86_64-linux-gnu/libc-*.so").function("malloc").return {
+probe process.function("_PyObject_Malloc").return {
     allocs[$return] = sprint_merged_stack()
 }
 
-probe process("/lib/x86_64-linux-gnu/libc-*.so").function("free").return {
-    delete allocs[$mem]
+probe process.function("_PyObject_Free").return {
+    delete allocs[$p]
 }
 
 probe timer.s($1) {

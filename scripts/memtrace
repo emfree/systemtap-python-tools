@@ -19,11 +19,10 @@ def main():
     argparser.add_argument('-x', '--pid', help='PID to profile')
     argparser.add_argument('-t', '--time', default='30',
                            help='Time to run profiler, in seconds')
-    argparser.add_argument('-d', action='append', dest='extra_loads',
-                           help='Load symbols from these additional modules')
     argparser.add_argument('--py3', action='store_true',
                            help='Pass when profiling Python 3 programs')
-    args = argparser.parse_args()
+    args, extra_args = argparser.parse_known_args()
+
     assert int(args.pid) > 1
 
     binary_path = os.path.realpath('/proc/{}/exe'.format(args.pid))
@@ -48,9 +47,7 @@ def main():
         if lib:
             stap_cmd.extend(('-d', lib))
 
-    if args.extra_loads is not None:
-        for l in args.extra_loads:
-            stap_cmd.extend(('-d', l))
+    stap_cmd.extend(extra_args)
 
     limits=['-D', 'MAXSTRINGLEN=4096', '-D', 'MAXBACKTRACE=200',
             '-D', 'MAXMAPENTRIES=10240']
