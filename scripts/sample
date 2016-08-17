@@ -7,8 +7,8 @@ import subprocess
 abspath = lambda f: os.path.join(os.path.dirname(__file__), f)
 
 
-def gen_tapset(binary):
-    with open(abspath('tapset/py_library.stpm'), 'w') as f:
+def gen_tapset_macros(binary, tapset_dir):
+    with open(os.path.join(tapset_dir, 'py_library.stpm'), 'w') as f:
         f.write('@define PYTHON_LIBRARY %( "{}" %)'.format(binary))
 
 
@@ -34,7 +34,7 @@ def main():
     else:
         tapset_dir = abspath('../tapset/python2')
 
-    gen_tapset(binary_path)
+    gen_tapset_macros(binary_path, tapset_dir)
 
     stap_cmd = ['stap', stapscript, args.time, '-d',
                 binary_path, '-x', args.pid, '-I', tapset_dir]
