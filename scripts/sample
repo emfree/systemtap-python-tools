@@ -4,6 +4,14 @@ import os
 import subprocess
 
 
+abspath = lambda f: os.path.join(os.path.dirname(__file__), f)
+
+
+def gen_tapset(binary):
+    with open(abspath('tapset/py_library.stpm'), 'w') as f:
+        f.write('@define PYTHON_LIBRARY %( "{}" %)'.format(binary))
+
+
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-x', '--pid', help='PID to profile')
@@ -18,11 +26,18 @@ def main():
 
     binary_path = os.path.realpath('/proc/{}/exe'.format(args.pid))
 
-    # TODO: get absolute path
-    stapscript = './py3sample.stp' if args.py3 else './pysample.stp'
+    #stapscript = './py3sample.stp' if args.py3 else './pysample.stp'
 
-    stap_cmd = ['stap', stapscript, binary_path, args.time, '-d',
-                binary_path, '-x', args.pid]
+    stapscript = abspath('sample.stp')
+    if args.py3:
+        tapset_dir = abspath('../tapset/python3')
+    else:
+        tapset_dir = abspath('../tapset/python2')
+
+    gen_tapset(binary_path)
+
+    stap_cmd = ['stap', stapscript, args.time, '-d',
+                binary_path, '-x', args.pid, '-I', tapset_dir]
 
     if args.extra_loads is not None:
         for l in args.extra_loads:

@@ -1,8 +1,5 @@
-@define PYTHON_LIBRARY %( @1 %)
-
 global pystack;
 global ustack;
-global stack_agg;
 
 
 function py3_extract_string(py_unicodeobject) {
@@ -102,17 +99,3 @@ function sprint_pystack () {
     }
     return stack;
 }
-
-probe perf.sw.task_clock.process {
-    stack_agg[sprint_merged_stack()] <<< 1;
-}
-
-
-probe end {
-    foreach (st in stack_agg) {
-        printf("%s %d\n", st, @count(stack_agg[st]));
-    }
-}
-
-
-probe timer.s($2) { exit(); }

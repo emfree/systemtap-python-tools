@@ -1,8 +1,5 @@
-@define PYTHON_LIBRARY %( @1 %)
-
 global pystack;
 global ustack;
-global stack_agg;
 
 function extract_string(py_string) {
     return user_string(@cast(py_string, "PyStringObject", @PYTHON_LIBRARY)->ob_sval);
@@ -86,17 +83,3 @@ function sprint_pystack () {
     }
     return stack;
 }
-
-probe perf.sw.task_clock.process {
-    stack_agg[sprint_merged_stack()] <<< 1;
-}
-
-
-probe end {
-    foreach (st in stack_agg) {
-        printf("%s %d\n", st, @count(stack_agg[st]));
-    }
-}
-
-
-probe timer.s($2) { exit(); }

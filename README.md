@@ -15,8 +15,7 @@ This toolkit bridges that gap by providing support for ad-hoc, low overhead prof
 
 ## Prereqs
 
-This'll only work with CPython on Linux. You'll need a fairly recent kernel
-with debuginfo enabled.
+This'll only work with CPython on Linux. You'll need a fairly recent kernel with debuginfo enabled.
 
 1. Get kernel debug symbols ([instructions](https://wiki.ubuntu.com/Kernel/Systemtap#Where_to_get_debug_symbols_for_kernel_X.3F) for Ubuntu)
 
@@ -29,20 +28,20 @@ with debuginfo enabled.
     ```
 
 3. You'll need to run a CPython binary that has debugging symbols in it. Many distributions ship one; `apt-get install python-dbg` will give you a `python-dbg` binary on Debian or Ubuntu.[2]
-    If your program relies on any C extension modules, you'll need to rebuild those against the new binary. I recommend using `virtualenv`:
+    If your program relies on any C extension modules, you'll need to rebuild those against the new binary. If you're using `virtualenv`, this is straightforward:
     ```
     virtualenv -p /usr/bin/python-dbg venv
     . venv/bin/activate
-    # install your project's dependencies
+    # install your project's dependencies.
     ```
 
 
-## Usage
+## CPU tracing
 
 To profile a running process $PID for 60 seconds, run
 
 ```
-./pystap -x $PID -t 60 | tee prof-$PID.txt
+scripts/sample -x $PID -t 60 | tee prof-$PID.txt
 ```
 
 You may see warning output like
@@ -53,7 +52,7 @@ WARNING: Missing unwind data for a module, rerun with 'stap -d /lib/x86_64-linux
 resulting in missing stack information because SystemTap can't resolve symbols.
 To fix this, rerun passing the additional library paths, e.g.,
 ```
-./pystap -x $PID -t 60 -d /lib/x86_64-linux-gnu/libpthread-2.23.so -d /lib/x86_64-linux-gnu/libc-2.23.so
+scripts/sample -x $PID -t 60 -d /lib/x86_64-linux-gnu/libpthread-2.23.so -d /lib/x86_64-linux-gnu/libc-2.23.so
 ```
 
 The output data can be visualized with [FlameGraph](https://github.com/brendangregg/FlameGraph):
@@ -66,7 +65,7 @@ flamegraph.pl prof-$PID.txt > prof-$PID.svg
 ---
 [1] Note that we're only talking about CPython here. JITted runtimes are totally their own story.
 
-[2] The "debug" Python binary is built with `--with-pydebug`, which also builds the interpreter with `-O0`, and enables the debug memory allocator. Those changes can negatively affect application performance, when all we really need here is a binary with DWARF debugging symbols in it. If this is a factor, consider building your own Python binary instead. E.g. (untested)
+[2] The "debug" Python binary is built with `--with-pydebug`, which also builds the interpreter with `-O0`, and enables the debug memory allocator. Those changes can negatively affect application performance, when all we really need here is a binary with DWARF debugging symbols in it. If this is a factor, consider building your own Python binary instead. E.g.
 ```
 export $VER=2.7.11
 wget https://www.python.org/ftp/python/$VER/Python-$VER.tar.xz
