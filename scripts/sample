@@ -1,7 +1,9 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import argparse
 import os
 import subprocess
+import sys
 
 
 abspath = lambda f: os.path.join(os.path.dirname(__file__), f)
@@ -26,9 +28,6 @@ def main():
 
     binary_path = os.path.realpath('/proc/{}/exe'.format(args.pid))
 
-    #stapscript = './py3sample.stp' if args.py3 else './pysample.stp'
-
-    stapscript = abspath('sample.stp')
     if args.py3:
         tapset_dir = abspath('../tapset/python3')
     else:
@@ -36,8 +35,17 @@ def main():
 
     gen_tapset_macros(binary_path, tapset_dir)
 
-    stap_cmd = ['stap', stapscript, args.time, '-d',
-                binary_path, '-x', args.pid, '-I', tapset_dir]
+    stap_cmd = ['stap', abspath('sample.stp'), args.time, '-d',
+                binary_path, '-x', args.pid, '-I', tapset_dir, '-d', 'kernel']
+
+    # Try to automatically load symbols for any shared libraries the process is
+    # using.
+    shared_libs = subprocess.check_output(
+        'lsof -p {pid} -F n | grep -E "\.so[0-9\.]*$" | sed "s/^n//"'.format(pid=args.pid),
+        shell=True).split('\n')
+    for lib in shared_libs:
+        if lib:
+            stap_cmd.extend(('-d', lib))
 
     if args.extra_loads is not None:
         for l in args.extra_loads:
@@ -48,8 +56,12 @@ def main():
 
     stap_cmd.extend(limits)
 
+    print(" ".join(stap_cmd))
     p = subprocess.Popen(stap_cmd)
     p.wait()
+    if p.returncode != 0:
+        print("Error running stap script (exit code {}). "
+              "You may need to pass --py3.".format(p.returncode), file=sys.stderr)
 
 
 if __name__ == '__main__':
