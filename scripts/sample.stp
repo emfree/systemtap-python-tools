@@ -5,11 +5,9 @@ probe perf.sw.task_clock.process {
 }
 
 
-probe end {
+probe timer.s($1) {
     foreach (st in stack_agg) {
         printf("%s %d\n", st, @count(stack_agg[st]));
     }
+    exit();
 }
-
-
-probe timer.s($1) { exit(); }
