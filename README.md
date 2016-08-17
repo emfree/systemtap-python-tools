@@ -36,7 +36,7 @@ This'll only work with CPython on Linux. You'll need a fairly recent kernel with
     ```
 
 
-## CPU tracing
+## CPU profiling
 
 To profile a running process $PID for 60 seconds, run
 
