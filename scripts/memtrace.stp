@@ -1,17 +1,19 @@
-global allocs
-
+global alloc_bt
+global alloc_time
 
 probe process.function("_PyObject_Malloc").return {
-    allocs[$return] = sprint_merged_stack()
+    alloc_bt[$return] = sprint_merged_stack()
+    alloc_time[$return] = gettimeofday_ms()
 }
 
 probe process.function("_PyObject_Free").return {
-    delete allocs[$p]
+    delete alloc_bt[$p]
+    delete alloc_time[$p]
 }
 
 probe timer.s($1) {
-    foreach (ptr in allocs) {
-        println(allocs[ptr])
+    foreach (ptr in alloc_bt) {
+        printf("%s %d\n", alloc_bt[ptr], alloc_time[ptr])
     }
     exit()
 }
