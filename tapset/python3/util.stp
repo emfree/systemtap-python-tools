@@ -40,7 +40,7 @@ function unpack_ustack () {
         kbt = backtrace();
         addr = tokenize(kbt, " ");
         while (addr != "") {
-            ustack[i] = "[k] " . symname(strtol(addr, 16));
+            ustack[i] = symname(strtol(addr, 16)) . "_[k]";
             i++;
             addr = tokenize("", " ");
         }
