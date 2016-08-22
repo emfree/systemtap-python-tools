@@ -1,6 +1,8 @@
 
 [SystemTap](https://sourceware.org/systemtap/) is a powerful but daunting tracing tool. It can be used to great effect to analyze Python applications (in particular because it's fairly easy to read user space memory in stap scripts). But some leg work is required. Here are a few utilities to make Python tracing a bit easier.
 
+(I gave a talk about this at PyBay 2016! [Slides here](https://speakerdeck.com/emfree/python-tracing-superpowers-with-systems-tools))
+
 ## Prereqs
 
 This'll only work with CPython on Linux. You'll need a fairly recent kernel with debuginfo enabled.
