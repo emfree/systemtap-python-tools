@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import re
 import argparse
 import os
 import subprocess
 import sys
 
 
-abspath = lambda f: os.path.join(os.path.dirname(__file__), f)
+def abspath(f):
+    return os.path.join(os.path.dirname(__file__), f)
+
+shared_library_re = re.compile("\.so[0-9\.]*$")
 
 
 def gen_tapset_macros(binary, tapset_dir):
@@ -16,7 +20,7 @@ def gen_tapset_macros(binary, tapset_dir):
 
 def main():
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('-x', '--pid', help='PID to profile')
+    argparser.add_argument('-x', '--pid', help='PID to profile', required=True)
     argparser.add_argument('-t', '--time', default='30',
                            help='Time to run profiler, in seconds')
     argparser.add_argument('-d', action='append', dest='extra_loads',
@@ -24,9 +28,9 @@ def main():
     argparser.add_argument('--py3', action='store_true',
                            help='Pass when profiling Python 3 programs')
     args = argparser.parse_args()
-    assert int(args.pid) > 1
+    main_pid = str(args.pid)
 
-    binary_path = os.path.realpath('/proc/{}/exe'.format(args.pid))
+    binary_path = os.path.realpath('/proc/{}/exe'.format(main_pid))
 
     if args.py3:
         tapset_dir = abspath('../tapset/python3')
@@ -35,14 +39,35 @@ def main():
 
     gen_tapset_macros(binary_path, tapset_dir)
 
-    stap_cmd = ['stap', abspath('sample.stp'), args.time, '-d',
-                binary_path, '-x', args.pid, '-I', tapset_dir, '-d', 'kernel']
+    sub_pids = [
+        pid_
+        for pid_ in subprocess.check_output(
+            ["pgrep", "--parent", main_pid]
+        ).splitlines()
+    ]
+    shared_libs = {binary_path, "kernel"}
 
-    # Try to automatically load symbols for any shared libraries the process is
-    # using.
-    shared_libs = subprocess.check_output(
-        'lsof -p {pid} -F n | grep -E "\.so[0-9\.]*$" | sed "s/^n//"'.format(pid=args.pid),
-        shell=True).split('\n')
+    pids = [main_pid] + sub_pids
+
+    # Try to automatically load symbols for any shared libraries
+    # the process and corresponding subprocesses (if any) are using.
+    for pid in pids:
+        with open("/proc/{}/maps".format(pid), "r") as fhandler:
+            for line in fhandler:
+                line = line.strip()
+                cols = line.split(None, 5)
+                if len(cols) != 6:
+                    continue
+                lib_path = cols[5]
+                if shared_library_re.findall(lib_path):
+                    shared_libs.add(lib_path)
+
+    stap_cmd = [
+        'stap', abspath('sample.stp'), args.time, '-I', tapset_dir
+    ]
+    for pid in pids:
+        stap_cmd.extend(("-x", pid))
+
     for lib in shared_libs:
         if lib:
             stap_cmd.extend(('-d', lib))
@@ -51,17 +76,18 @@ def main():
         for l in args.extra_loads:
             stap_cmd.extend(('-d', l))
 
-    limits=['-D', 'MAXSTRINGLEN=4096', '-D', 'MAXBACKTRACE=200',
-            '-D', 'MAXMAPENTRIES=10240']
+    limits = ['-D', 'MAXSTRINGLEN=4096', '-D', 'MAXBACKTRACE=200',
+              '-D', 'MAXMAPENTRIES=10240']
 
     stap_cmd.extend(limits)
 
-    print(" ".join(stap_cmd))
+    print(" ".join(stap_cmd), file=sys.stderr)
     p = subprocess.Popen(stap_cmd)
     p.wait()
     if p.returncode != 0:
         print("Error running stap script (exit code {}). "
-              "You may need to pass --py3.".format(p.returncode), file=sys.stderr)
+              "You may need to pass --py3."
+              "".format(p.returncode), file=sys.stderr)
 
 
 if __name__ == '__main__':
