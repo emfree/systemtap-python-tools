@@ -11,11 +11,21 @@ def abspath(f):
     return os.path.join(os.path.dirname(__file__), f)
 
 shared_library_re = re.compile("\.so[0-9\.]*$")
+libpython_re = re.compile(r'\t.* => (.*libpython.*) \(0x')
 
 
 def gen_tapset_macros(binary, tapset_dir):
+    python_lib_path = binary
+    lines = subprocess.check_output(["ldd", binary]).splitlines()
+    for line in lines:
+        m = libpython_re.match(line)
+        if not m:
+            continue
+        python_lib_path = m.group(1)
+        break
+
     with open(os.path.join(tapset_dir, 'py_library.stpm'), 'w') as f:
-        f.write('@define PYTHON_LIBRARY %( "{}" %)'.format(binary))
+        f.write('@define PYTHON_LIBRARY %( "{}" %)'.format(python_lib_path))
 
 
 def main():
