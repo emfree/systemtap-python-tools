@@ -65,7 +65,7 @@ flamegraph.pl prof-$PID.txt > prof-$PID.svg
 
 Run
 ```
-scripts/sample -x $PID -t 60
+scripts/memtrace -x $PID -t 60
 ```
 to trace all Python object memory allocations for 60 seconds. At the end, for all surviving objects, the allocation timestamp and traceback will be printed. This can help track down memory leaks. Caution: This can have high overhead.
 
