@@ -1,0 +1,49 @@
+#! /usr/bin/env stap
+
+@define _mysql %( "/vagrant_data/python-tracing-talk/py3-venv/lib/python3.5/site-packages/_mysql.cpython-35m-x86_64-linux-gnu.so" %)
+
+
+global ncalls = 0;
+global tracing = 0;
+global maxcalls = $2;
+
+function trace(entry_p) {
+  if (tracing == 1) {
+    printf("%s%s%s\n",
+           thread_indent (entry_p),
+           (entry_p>0?"->":"<-"),
+           ppfunc ())
+  }
+}
+
+probe begin { println("tracing"); }
+
+probe process.function("*").call {
+  trace(1)
+}
+
+probe process.function("*").return {
+  trace(-1)
+}
+
+
+probe process(@_mysql).function("*").call {
+  trace(1)
+}
+
+probe process(@_mysql).function("*").return {
+  trace(-1)
+}
+
+probe process(@_mysql).function(@1).call   {
+  ncalls++;
+  tracing = 1;
+  println("\n\n");
+}
+
+probe process(@_mysql).function(@1).return {
+  tracing = 0;
+  if (ncalls == maxcalls) {
+    exit();
+  }
+}

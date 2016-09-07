@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import argparse
+import os
+import subprocess
+import sys
+
+
+abspath = lambda f: os.path.join(os.path.dirname(__file__), f)
+
+
+def gen_tapset_macros(binary, tapset_dir):
+    with open(os.path.join(tapset_dir, 'py_library.stpm'), 'w') as f:
+        f.write('@define PYTHON_LIBRARY %( "{}" %)'.format(binary))
+
+
+def main():
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('-x', '--pid', help='PID to profile')
+    argparser.add_argument('-n', '--ncalls',
+                           help='Number of times to record function execution',
+                           default='20')
+    argparser.add_argument('-t', '--trigger', help='Trigger function')
+    argparser.add_argument('-d', action='append', dest='extra_loads',
+                           help='Load symbols from these additional modules')
+    argparser.add_argument('--py3', action='store_true',
+                           help='Pass when profiling Python 3 programs')
+    args, extra_args = argparser.parse_known_args()
+    assert int(args.pid) > 1
+
+    binary_path = os.path.realpath('/proc/{}/exe'.format(args.pid))
+
+    if args.py3:
+        tapset_dir = abspath('../tapset/python3')
+    else:
+        tapset_dir = abspath('../tapset/python2')
+
+    gen_tapset_macros(binary_path, tapset_dir)
+
+    stap_cmd = ['stap', abspath('callgraph.stp'), args.trigger, args.ncalls, '-d',
+                binary_path, '-x', args.pid, '-I', tapset_dir, '-d', 'kernel']
+
+    # Try to automatically load symbols for any shared libraries the process is
+    # using.
+    shared_libs = subprocess.check_output(
+        'lsof -p {pid} -F n | grep -E "\.so[0-9\.]*$" | sed "s/^n//"'.format(pid=args.pid),
+        shell=True).split('\n')
+    for lib in shared_libs:
+        if lib:
+            stap_cmd.extend(('-d', lib))
+
+    if args.extra_loads is not None:
+        for l in args.extra_loads:
+            stap_cmd.extend(('-d', l))
+
+    limits=['-D', 'MAXSTRINGLEN=4096', '-D', 'MAXBACKTRACE=200',
+            '-D', 'MAXMAPENTRIES=10240']
+
+    stap_cmd.extend(limits)
+    stap_cmd.extend(extra_args)
+
+    print(" ".join(stap_cmd))
+    p = subprocess.Popen(stap_cmd)
+    p.wait()
+    if p.returncode != 0:
+        print("Error running stap script (exit code {}). "
+              "You may need to pass --py3.".format(p.returncode), file=sys.stderr)
+
+
+if __name__ == '__main__':
+    main()
