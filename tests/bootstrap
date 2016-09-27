@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+apt-get install -y python-dbg python3-dbg virtualenv gcc g++ libdw-dev linux-headers-`uname -r`
+
+if ! which stap
+then
+    git clone git://sourceware.org/git/systemtap.git /tmp/systemtap
+    cd /tmp/systemtap
+    ./configure && make && make install
+fi
+
+virtualenv -p python-dbg testenv

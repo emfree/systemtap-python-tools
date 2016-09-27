@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+trap 'kill $(jobs -p)' EXIT
+
+testenv/bin/python example.py &
+PID=$!
+../scripts/sample -t 1 -x $PID

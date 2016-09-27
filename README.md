@@ -11,7 +11,7 @@ This'll only work with CPython on Linux. You'll need a fairly recent kernel with
 
 2. Install SystemTap. I recommend just building the latest version from source.
     ```
-    sudo apt-get install gcc g++ textinfo libdw-dev linux-headers-`uname -r`
+    sudo apt-get install gcc g++ gettext libdw-dev linux-headers-`uname -r`
     git clone git://sourceware.org/git/systemtap.git
     cd systemtap
     ./configure && make && sudo make install
