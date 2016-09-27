@@ -1,2 +1,4 @@
 tapset/python2/py_library.stpm
 tapset/python3/py_library.stpm
+*/*.pyc
+tests/testenv/
