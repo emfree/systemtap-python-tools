@@ -5,11 +5,9 @@
 
 ## Prereqs
 
-This'll only work with CPython on Linux. You'll need a fairly recent kernel with debuginfo enabled.
+This'll only work with CPython on Linux.
 
-1. Get kernel debug symbols ([instructions](https://wiki.ubuntu.com/Kernel/Systemtap#Where_to_get_debug_symbols_for_kernel_X.3F) for Ubuntu)
-
-2. Install SystemTap. I recommend just building the latest version from source.
+1. Install SystemTap. I recommend just building the latest version from source.
     ```
     sudo apt-get install gcc g++ gettext libdw-dev linux-headers-`uname -r`
     git clone git://sourceware.org/git/systemtap.git
@@ -17,7 +15,7 @@ This'll only work with CPython on Linux. You'll need a fairly recent kernel with
     ./configure && make && sudo make install
     ```
 
-3. You'll need to run a CPython binary that has debugging symbols in it. Many distributions ship one; `apt-get install python-dbg` will give you a `python-dbg` binary on Debian or Ubuntu.[1]
+2. You'll need to run a CPython binary that has debugging symbols in it. Many distributions ship one; `apt-get install python-dbg` will give you a `python-dbg` binary on Debian or Ubuntu.[1]
     If your program relies on any C extension modules, you'll need to rebuild those against the new binary. If you're using `virtualenv`, this is straightforward:
     ```
     virtualenv -p /usr/bin/python-dbg venv
