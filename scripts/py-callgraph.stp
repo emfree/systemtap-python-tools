@@ -1,0 +1,33 @@
+#! /usr/bin/env stap
+
+
+global ncalls = 0
+global tracing = 0
+global maxcalls = $2
+
+probe begin { println("tracing") }
+
+probe process.function("PyEval_EvalFrameEx").call {
+  func = func_name($f)
+  if (func == @1) {
+    tracing = 1
+    ncalls++
+  }
+  if (tracing == 1) {
+    printf("%s%s%s\n", thread_indent(1), "->", func)
+  }
+}
+
+probe process.function("PyEval_EvalFrameEx").return {
+  func = func_name($f)
+  if (tracing == 1) {
+    printf("%s%s%s\n", thread_indent(-1), "<-", func)
+  }
+
+  if (func == @1) {
+    tracing = 0
+    if (ncalls == maxcalls) {
+        exit()
+    }
+  }
+}

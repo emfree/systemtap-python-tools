@@ -1,7 +1,5 @@
 #! /usr/bin/env stap
 
-@define _mysql %( "/vagrant_data/python-tracing-talk/py3-venv/lib/python3.5/site-packages/_mysql.cpython-35m-x86_64-linux-gnu.so" %)
-
 
 global ncalls = 0;
 global tracing = 0;
@@ -27,21 +25,13 @@ probe process.function("*").return {
 }
 
 
-probe process(@_mysql).function("*").call {
-  trace(1)
-}
-
-probe process(@_mysql).function("*").return {
-  trace(-1)
-}
-
-probe process(@_mysql).function(@1).call   {
+probe process.function(@1).call   {
   ncalls++;
   tracing = 1;
   println("\n\n");
 }
 
-probe process(@_mysql).function(@1).return {
+probe process.function(@1).return {
   tracing = 0;
   if (ncalls == maxcalls) {
     exit();

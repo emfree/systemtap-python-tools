@@ -27,7 +27,7 @@ def main():
 
     gen_tapset_macros(main_pid, tapset_dir)
 
-    stap_cmd = ['stap', abspath('callgraph.stp'), args.trigger, args.ncalls,
+    stap_cmd = ['stap', abspath('py-callgraph.stp'), args.trigger, args.ncalls,
                 '-I', tapset_dir]
 
     stap_cmd.extend(build_stap_args(main_pid))
