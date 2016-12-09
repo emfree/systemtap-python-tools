@@ -12,8 +12,7 @@ def main():
     argparser.add_argument('-n', '--ncalls',
                            help='Number of times to record function execution',
                            default='20')
-    argparser.add_argument('-t', '--trigger', help='Trigger function',
-                           required=True)
+    argparser.add_argument('-t', '--trigger', help='Trigger function')
     argparser.add_argument('--py3', action='store_true',
                            help='Pass when profiling Python 3 programs')
     argparser.add_argument('-v', '--verbose', action='store_true')
@@ -27,7 +26,9 @@ def main():
 
     gen_tapset_macros(main_pid, tapset_dir)
 
-    stap_cmd = ['stap', abspath('py-callgraph.stp'), args.trigger, args.ncalls,
+    trigger = args.trigger or ''
+
+    stap_cmd = ['stap', abspath('py-callgraph.stp'), args.ncalls, trigger,
                 '-I', tapset_dir]
 
     stap_cmd.extend(build_stap_args(main_pid))

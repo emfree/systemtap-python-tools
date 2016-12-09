@@ -3,16 +3,23 @@
 
 global ncalls = 0
 global tracing = 0
-global maxcalls = $2
+global maxcalls = $1
 
-probe begin { println("tracing") }
+probe begin {
+    if ($# < 2) {
+        printf("nargs %d\n", $#)
+        tracing = 1
+    }
+}
 
 probe process.function("PyEval_EvalFrameEx").call {
   func = func_name($f)
-  if (func == @1) {
+%( $# > 1 %?
+  if (func == @2) {
     tracing = 1
     ncalls++
   }
+%)
   if (tracing == 1) {
     printf("%s%s%s\n", thread_indent(1), "->", func)
   }
@@ -24,10 +31,12 @@ probe process.function("PyEval_EvalFrameEx").return {
     printf("%s%s%s\n", thread_indent(-1), "<-", func)
   }
 
-  if (func == @1) {
+%( $# > 1 %?
+  if (func == @2) {
     tracing = 0
     if (ncalls == maxcalls) {
         exit()
     }
   }
+%)
 }
