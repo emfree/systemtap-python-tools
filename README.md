@@ -9,7 +9,7 @@ This'll only work with CPython on Linux.
 
 1. Install SystemTap. I recommend just building the latest version from source.
     ```
-    sudo apt-get install gcc g++ gettext libdw-dev linux-headers-`uname -r`
+    sudo apt-get install -y gcc g++ gettext libdw-dev linux-headers-`uname -r`
     git clone git://sourceware.org/git/systemtap.git
     cd systemtap
     ./configure && make && sudo make install
