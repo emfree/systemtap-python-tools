@@ -1,11 +1,13 @@
 
-[SystemTap](https://sourceware.org/systemtap/) is a powerful but daunting tracing tool. It can be used to great effect to analyze Python applications (in particular because it's fairly easy to read user space memory in stap scripts). But some leg work is required. Here are a few utilities to make Python tracing a bit easier.
+Do you need to profile a Python program that spends a lot of its time in C extension code? Debug a memory leak? Or understand a particular codepath in an unfamiliarcodebase?
+
+[SystemTap](https://sourceware.org/systemtap/) is a powerful and flexible Linux tracing tool. It can be used to great effect to analyze Python applications. However, some leg work is required. Here are a few utilities to help trace Python programs.
 
 (I gave a talk about this at PyBay 2016! [Slides here](https://speakerdeck.com/emfree/python-tracing-superpowers-with-systems-tools))
 
-## Prereqs
+# Getting started
 
-This'll only work with CPython on Linux.
+This will only work with CPython on Linux. Python 2 and 3 are both supported.
 
 1. Install SystemTap. I recommend just building the latest version from source.
     ```
@@ -15,7 +17,7 @@ This'll only work with CPython on Linux.
     ./configure && make && sudo make install
     ```
 
-2. You'll need to run a CPython binary that has debugging symbols in it. Many distributions ship one; `apt-get install python-dbg` will give you a `python-dbg` binary on Debian or Ubuntu.[1]
+2. You'll need to run a CPython binary that contains debugging symbols. Many distributions ship one; `apt-get install python-dbg` will give you a `python-dbg` binary on Debian or Ubuntu.[1]
     If your program relies on any C extension modules, you'll need to rebuild those against the new binary. If you're using `virtualenv`, this is straightforward:
     ```
     virtualenv -p /usr/bin/python-dbg venv
@@ -23,40 +25,46 @@ This'll only work with CPython on Linux.
     # install your project's dependencies.
     ```
 
+3. For profiling support, clone [https://github.com/brendangregg/FlameGraph](https://github.com/brendangregg/FlameGraph) and add it to your `$PATH`.
+
+
+In general, SystemTap scripts need to be run as root.
+
+
+# Careful!
+Tracing overhead can vary dramatically! SystemTap bugs could crash your system! Test in a safe environment before you use any of this in production!
+
+
+# Examples
+
 
 ## CPU profiling
 
-There are a [number](https://github.com/joerick/pyinstrument) [of](https://github.com/bdarnell/plop) [sampling](https://github.com/vmprof/vmprof-python) [profiler](https://github.com/nylas/nylas-perftools) [implementations](https://github.com/what-studio/profiling) available for Python, and it's very easy to roll your own if you don't like any of them. The most common strategy is to sample the Python call stack from within the interpreter. This approach has two limitations:
 
-* Calls into C extension code are largely invisible
-* Live profiling of long-running server applications requires some modicum of support in application code.
-
-On the other hand, tools like Linux `perf` can be used to great effect for ad-hoc profiling of native binaries. But using `perf` to profile a Python application will only give you C call stacks in the interpreter, and little insight into what your _Python_ code is doing.
-
-This toolkit aims to help bridge that gap by providing support for ad-hoc, low overhead profiling of unmodified Python applications, combining native and Python call stacks.
+### Basic Usage
 
 To profile a running process $PID for 60 seconds, run
 
 ```
-scripts/sample -x $PID -t 60 | tee prof-$PID.txt
+scripts/sample -x $PID -t 60 | flamegraph.pl --colors=java > profile.svg
 ```
 
-You may see warning output like
-```
-WARNING: Missing unwind data for a module, rerun with 'stap -d /lib/x86_64-linux-gnu/libpthread-2.23.so'
-```
-
-resulting in missing stack information because SystemTap can't resolve symbols.
-To fix this, rerun passing the additional library paths, e.g.,
-```
-scripts/sample -x $PID -t 60 -d /lib/x86_64-linux-gnu/libpthread-2.23.so -d /lib/x86_64-linux-gnu/libc-2.23.so
-```
-
-The output data can be visualized with [FlameGraph](https://github.com/brendangregg/FlameGraph):
+If you're using Python 3, pass `--py3`:
 
 ```
-flamegraph.pl prof-$PID.txt > prof-$PID.svg
+scripts/sample --py3 -x $PID -t 60 | flamegraph.pl --colors=java > profile.svg
 ```
+
+### Rationale
+
+There are a [number](https://github.com/joerick/pyinstrument) [of](https://github.com/bdarnell/plop) [sampling](https://github.com/vmprof/vmprof-python) [profiler](https://github.com/nylas/nylas-perftools) [implementations](https://github.com/what-studio/profiling) available for Python, and it's easy to roll your own if you don't like any of them. The most common strategy is to sample the Python call stack from within the interpreter. But this approach has two limitations:
+
+* Calls into C extension code are largely invisible
+* You'll need to integrate the profiler into your application code.
+
+In contrast, tools like Linux `perf` can profile unmodified native binaries. But using `perf` on a Python program will only give you C call stacks in the interpreter, and little insight into what your _Python_ code is doing.
+
+With SystemTap, we can get something of the best of both worlds. We don't need to change any application code, and the resultant profile transparently combines native and Python callstacks.
 
 
 ## Memory allocation tracing
@@ -65,17 +73,17 @@ Run
 ```
 scripts/memtrace -x $PID -t 60
 ```
-to trace all Python object memory allocations for 60 seconds. At the end, for all surviving objects, the allocation timestamp and traceback will be printed. This can help track down memory leaks. Caution: This can have high overhead.
+to trace all Python object memory allocations for 60 seconds. At the end, for all surviving objects, the allocation timestamp and traceback will be printed. This can help track down memory leaks.
 
 
 
-## Function execution tracing
+## C Function execution tracing
 
 Run
 ```
 scripts/callgraph -x $PID -t $TRIGGER -n 20
 ```
-to trace 20 executions of function $TRIGGER, and print a microsecond-timed callgraph. $TRIGGER should be a C function in the interpreter (so this is pretty low level). Caution: This can have high overhead.
+to trace 20 executions of function $TRIGGER, and print a microsecond-timed callgraph. $TRIGGER should be a C function in the interpreter (so this is pretty low level).
 
 
 ---
