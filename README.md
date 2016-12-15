@@ -1,5 +1,5 @@
 
-Do you need to profile a Python program that spends a lot of its time in C extension code? Debug a memory leak? Or understand a particular codepath in an unfamiliarcodebase?
+Do you need to profile a Python program that spends a lot of its time in C extension code? Debug a memory leak? Or understand a particular codepath in an unfamiliar codebase?
 
 [SystemTap](https://sourceware.org/systemtap/) is a powerful and flexible Linux tracing tool. It can be used to great effect to analyze Python applications. However, some leg work is required. Here are a few utilities to help trace Python programs.
 
