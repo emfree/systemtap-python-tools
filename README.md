@@ -1,9 +1,9 @@
 
 Do you need to profile a Python program that spends a lot of its time in C extension code? Debug a memory leak? Or understand a particular codepath in an unfamiliar codebase?
 
-[SystemTap](https://sourceware.org/systemtap/) is a powerful and flexible Linux tracing tool. It can be used to great effect to analyze Python applications. However, some leg work is required. Here are a few utilities to help trace Python programs.
+[SystemTap](https://sourceware.org/systemtap/) is a powerful and flexible Linux tracing tool. It can be used to great effect to solve these problems and more. However, some leg work is required. Here are a few utilities to help trace Python programs.
 
-(I gave a talk about this at PyBay 2016! [Slides here](https://speakerdeck.com/emfree/python-tracing-superpowers-with-systems-tools))
+(I gave a talk about this at PyBay 2016, discussing some of the background, motivation, and implementation in depth. [Slides here](https://speakerdeck.com/emfree/python-tracing-superpowers-with-systems-tools))
 
 # Getting started
 
@@ -39,6 +39,9 @@ Tracing overhead can vary dramatically! SystemTap bugs could crash your system! 
 
 
 ## CPU profiling
+
+![A flamegraph showing user, interpreter and kernel stacks.](/static/flamegraph_expanded.png)
+-- An example flame graph combining Python, interpreter, and kernel call stacks.
 
 
 ### Basic Usage
